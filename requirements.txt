@@ -8,3 +8,5 @@ wincertstore==0.2
 pandas
 scikit-learn
 imageio
+matplotlib
+tdqm

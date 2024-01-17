@@ -97,7 +97,8 @@ def save_model(model):
 def test_passthrough(model,df, image_path):
 
     length_seq = 50
-    df = df.iloc[900:900+length_seq]
+    length = int(0.8*len(df))
+    df = df.iloc[length:length+length_seq]
     image_paths = df['photo_num'].values  # Column with image references
     sequence_data = df.drop('photo_num', axis=1)  # All other columns
     scaler = StandardScaler()
@@ -134,21 +135,23 @@ def test_passthrough(model,df, image_path):
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 model = LstmDecoder(device=device,input_dim=3,l1_out=[8,16,32,32],lstm_hidden_dim = [32,32,64], l2_out= [64,128,128], decoder_chan=8) 
-if True:
-    model.load_state_dict(torch.load('new_model.pth'))
-    
+if False:
+    model_loader = torch.load('new_model.pth')
+    model.load_state_dict(model_loader)
+   
 criterion = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 model.to(device)
 df = pd.read_csv('network/data/updated_robot_data.csv')
 df = process_time(df)
-
+df = df[1:100]
 print("Setup complete")
 
 train_loader, test_loader = get_data_sets(df,'network/data/blended_image')
 print("Data loaded")
-train(model=model,criterion=criterion, optimizer=optimizer, train_loader=train_loader, num_epochs=20)
+train(model=model,criterion=criterion, optimizer=optimizer, train_loader=train_loader, num_epochs=1000)
 save_model(model)
 evaluate(model, test_loader, criterion)
 test_passthrough(model,df,'network/data/blended_image')
