@@ -1,33 +1,35 @@
 import cv2
 import numpy as np
 
-# Load the image
-image = cv2.imread('network/data/blended_image/robot_0.png')
+# Load an image
+image = cv2.imread('data acquisition/images/robot_0.png')
 
-# Convert image to grayscale
+# Convert the image to grayscale as edge detection requires single channel image formats
 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
+### Edge Detection ###
+edges = cv2.Canny(gray, 100, 200)  # Adjust these thresholds based on your image
 
-# Threshold the image to create a binary image
-_, binary = cv2.threshold(gray, 225, 255, cv2.THRESH_BINARY_INV)
-cv2.imshow('Binary Image', binary)
+### Segmentation ###
+# Simple thresholding (assumes a somewhat uniform background)
+# You might need to adjust the threshold value based on your images
+_, segmented = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+
+### Keypoint Detection ###
+# Shi-Tomasi Corner Detector & Good Features to Track
+corners = cv2.goodFeaturesToTrack(gray, maxCorners=100, qualityLevel=0.01, minDistance=10)
+corners = np.int0(corners)
+
+# Draw detected corners on the original image
+for i in corners:
+    x, y = i.ravel()
+    cv2.circle(image, (x, y), 3, (255, 0, 0), -1)  # Draw red circles on detected corners
+
+### Display Results ###
+cv2.imshow('Edges', edges)
+cv2.imshow('Segmented', segmented)
+cv2.imshow('Keypoints', image)  # Display keypoints on the original image
+
+# Wait for a key press and then terminate the windows
 cv2.waitKey(0)
-
-# Find contours from the binary image
-contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-# Assuming the largest contour is the object of interest
-largest_contour = max(contours, key=cv2.contourArea)
-
-# Create a mask of the largest contour
-mask = np.zeros_like(gray)
-cv2.drawContours(mask, [largest_contour], -1, (255), thickness=cv2.FILLED)
-cv2.imshow('Mask', mask)
-cv2.waitKey(0)
-
-# Use the mask to extract the object
-result = cv2.bitwise_and(image, image, mask=mask)
-cv2.imshow("Result",result)
-# Save or display the result
-cv2.waitKey(0)
-cv2.imwrite('path_to_your_output_image.png', result)
+cv2.destroyAllWindows()

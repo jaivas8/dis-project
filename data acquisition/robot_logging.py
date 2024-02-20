@@ -8,13 +8,16 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-random.seed(10)
+import os
+random.seed(9)
+COUNTER_START = len(os.listdir('data acquisition/images'))
+print(COUNTER_START)
 MOVEMENT_RANGE = 0.04999
-FILE_PATH = "images/" # File path for images
+FILE_PATH = "data acquisition/images" # File path for images
 ROBOT_IP = '169.254.76.5'
 ACCELERATION = 0.9  # Robot acceleration value
 VELOCITY = 0.8  # Robot speed value
-LOOPS = 300 # The amount of movement
+LOOPS = 100 # The amount of movement
 START_X = 0
 START_Y = 0
 MAX= 0.05
@@ -114,19 +117,18 @@ def log_movement(robot):
     avg_mov_time = []
 
 
-    start_time = time.time()
-    timestamps = [start_time]
+    timestamps = []
 
- 
+    start_time = time.time()
 
     cam = cv.VideoCapture(0)
-    pos = robot.get_actual_tcp_pose()
-    robot_xs = [pos[0]-START_X]
-    robot_ys = [pos[1]-START_Y]
-    photos = [take_picture(cam)]
+    robot_xs = []
+    robot_ys = []
+    photos = []
     
 
-
+    photo_num=[]
+    photo_counter = COUNTER_START
     
     starting_point = START_X,START_Y
     counter =0
@@ -165,11 +167,11 @@ def log_movement(robot):
             robot_position = robot.get_actual_tcp_pose()
 
             # Save the frame as a photo
-            start_pic = time.time()
+            start_pic = time.perf_counter()
             image = take_picture(cam)
             
             #Add data to the DataFrame
-            timestamps.append(time.time()-start_time)
+            timestamps.append(time.perf_counter()-start_time)
             robot_xs.append(robot_position[0]-START_X)
             robot_ys.append(robot_position[1]-START_Y)
             
@@ -186,8 +188,7 @@ def log_movement(robot):
     for x,y in zip(xs,ys):
         move_to_position(robot,x,y)
         time.sleep(0.1)
-    photo_num=[]
-    photo_counter = 0
+    
     for image in tqdm(photos):
         image = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
         cv.imwrite(f"{FILE_PATH}/robot_{photo_counter}.png", image)
@@ -195,7 +196,7 @@ def log_movement(robot):
         photo_counter+=1
         
     data= pd.DataFrame({"Timestamp":timestamps,"robot_x":robot_xs,"robot_y":robot_ys,"photo_num":photo_num})
-    data.to_csv("robot_movement_data.csv", index=False)
+    data.to_csv(f"data acquisition/robot_movement_data_{COUNTER_START}.csv", index=False)
     print(f"Avg_time for log: {sum(avg_time)/len(avg_time)}")
     print(f"Avg_time for movement: {sum(avg_mov_time)/len(avg_mov_time)}")
     # Release the webcam and close the data logging process
